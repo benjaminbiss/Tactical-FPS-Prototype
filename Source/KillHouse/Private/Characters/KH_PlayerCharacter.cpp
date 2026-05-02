@@ -1,5 +1,7 @@
 #include "Characters/KH_PlayerCharacter.h"
 
+#include "Weapons/KH_WeaponBase.h"
+
 #include "Camera/CameraComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -41,13 +43,6 @@ AKH_PlayerCharacter::AKH_PlayerCharacter()
 	FirstPersonMesh->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::FirstPerson;
 	FirstPersonMesh->SetCollisionProfileName(FName("NoCollision"));
 
-	// Configure the first person weapon mesh
-	FPSWeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FPS_Gun"));
-	FPSWeaponMesh->SetupAttachment(FirstPersonMesh, FName("ik_hand_gun"));
-	FPSWeaponMesh->SetOnlyOwnerSee(true);
-	FPSWeaponMesh->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::FirstPerson;
-	FPSWeaponMesh->SetCollisionProfileName(FName("NoCollision"));
-
 	// Configure size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(34.0f, 90.0f);	
 
@@ -71,6 +66,18 @@ void AKH_PlayerCharacter::BeginPlay()
 	GetCharacterMovement()->MaxWalkSpeed = 400.0f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 	GetCharacterMovement()->AirControl = 0.5f;
+
+	// Configure Weapon
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.Instigator = GetInstigator();
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	Weapon = GetWorld()->SpawnActor<AKH_WeaponBase>(WeaponToSpawn, this->GetActorTransform(), Params);
+	if (Weapon)
+	{
+		Weapon->AttachToComponent(FirstPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("ik_hand_gun"));
+		WeaponInterface = Weapon;
+	}
 }
 
 void AKH_PlayerCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)

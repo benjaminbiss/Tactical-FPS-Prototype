@@ -4,6 +4,9 @@
 #include "GameFramework/Character.h"
 #include "KH_PlayerCharacter.generated.h"
 
+class AKH_WeaponBase;
+class IKH_WeaponInterface;
+
 class UInputComponent;
 class USkeletalMeshComponent;
 class UCameraComponent;
@@ -37,9 +40,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* WeaponMesh;
 
-	//** Weapon Skeletal Mesh*/
+	//** Weapon Actor */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	USkeletalMeshComponent* FPSWeaponMesh;
+	AKH_WeaponBase* Weapon;
+	//** Weapon Interface */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TScriptInterface<IKH_WeaponInterface> WeaponInterface;
+	//** Weapon Spawn Class */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	TSubclassOf<class AKH_WeaponBase> WeaponToSpawn;
 #pragma endregion
 
 #pragma region Input
@@ -144,6 +153,8 @@ protected:
 	bool bCanSprint = false; 
 	//** Used for Animation */
 	bool bIsSprinting = false;
+	//** Used for Animation */
+	bool bWeaponObstructed = false;
 #pragma endregion
 
 #pragma region Movement Variables Getters
