@@ -32,6 +32,10 @@ protected:
 
 #pragma region Weapon Interface Implementation
 public:
+	//** Set Weapon Can Fire Logic */
+	virtual void SetCanFire_Implementation(bool Value) override;
+	//** Get Weapon Can Fire Logic */
+	virtual bool GetCanFire_Implementation() override;
 	//** Handle Weapon Fire Logic */
 	virtual void Fire_Implementation() override;
 	//** Handle Weapon Reload Logic */
@@ -40,6 +44,24 @@ public:
 	virtual void ToggleLight_Implementation() override;
 	//** Handle Weapon Laser Toggle Logic */
 	virtual void ToggleLaser_Implementation() override;
+	//** Start Weapon ADS */
+	virtual void StartADS_Implementation() override;
+	//** Stop Weapon ADS */
+	virtual void StopADS_Implementation() override;
+	//** Get Weapons current ammo count */
+	virtual int32 GetAmmoCount_Implementation() override;
+	//** Get Caracter Draw Anim from Weapon Data Asset */
+	virtual UAnimMontage* GetDrawMontage_Implementation() override;
+	//** Get Caracter Hoslter Anim from Weapon Data Asset */
+	virtual UAnimMontage* GetHolsterMontage_Implementation() override;
+	//** Get Caracter Idle Fire Anim from Weapon Data Asset */
+	virtual UAnimMontage* GetIdleFireMontage_Implementation() override;
+	//** Get Caracter ADS Fire Anim from Weapon Data Asset */
+	virtual UAnimMontage* GetADSFireMontage_Implementation() override;
+	//** Get Caracter Reload Anim from Weapon Data Asset */
+	virtual UAnimMontage* GetReloadMontage_Implementation() override;
+	//** Get Caracter Reload Empty Anim from Weapon Data Asset */
+	virtual UAnimMontage* GetReloadEmptyMontage_Implementation() override;
 	//** Access Weapon Stats within a Weapon Data Asset */
 	virtual FKH_WeaponStats GetWeaponStats_Implementation() override;
 #pragma endregion
@@ -48,7 +70,7 @@ public:
 	//** Configure Mesh from Weapon Data Asset */
 	void SetWeaponMesh();
 	//** Get Fire Anim from Weapon Data Asset */
-	UAnimMontage* GetFireMontage();
+	UAnimMontage* GetWeaponFireMontage();
 	//** Get Reload Anim from Weapon Data Asset */
 	UAnimMontage* GetReloadMontage();
 	//** Set Anim Instance from Weapon Data Asset */
@@ -72,8 +94,22 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Data")
 	int32 CurrentAmmo;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Data")
-	bool bIsReloading;
+	bool bIsAiming = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Data")
+	bool bIsReloading = false;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon Data")
 	bool bCanFire = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Data")
+	bool bDebugBullets = true;
+#pragma endregion
+
+#pragma region Animation Notifies
+	/** Handles fps skeleton anim notify */
+	UFUNCTION()
+	void HandleAnimiationNotifies(FName NotifyName, const FBranchingPointNotifyPayload& Payload);
+	/** Handles reload anim notify */
+	UFUNCTION()
+	void HandleReloadAnimNotify();
 #pragma endregion
 };

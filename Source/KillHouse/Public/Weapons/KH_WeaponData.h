@@ -14,8 +14,14 @@ class KILLHOUSE_API UKH_WeaponData : public UPrimaryDataAsset
 public:
     UPROPERTY(EditDefaultsOnly) FKH_WeaponStats Stats;
     UPROPERTY(EditDefaultsOnly) USkeletalMesh* WeaponMesh;
-    UPROPERTY(EditDefaultsOnly) UAnimMontage* FireMontage;
+    UPROPERTY(EditDefaultsOnly) UAnimMontage* DrawMontage;
+    UPROPERTY(EditDefaultsOnly) UAnimMontage* HolsterMontage;
+    UPROPERTY(EditDefaultsOnly) UAnimMontage* IdleFireMontage;
+    UPROPERTY(EditDefaultsOnly) UAnimMontage* ADSFireMontage;
+    UPROPERTY(EditDefaultsOnly) UAnimMontage* WeaponFireMontage;
     UPROPERTY(EditDefaultsOnly) UAnimMontage* ReloadMontage;
+    UPROPERTY(EditDefaultsOnly) UAnimMontage* ReloadEmptyMontage;
+    UPROPERTY(EditDefaultsOnly) UAnimMontage* WeaponReloadMontage;
     UPROPERTY(EditDefaultsOnly) TSubclassOf<UAnimInstance> AnimInstanceClass;
     UPROPERTY(EditDefaultsOnly) UParticleSystem* MuzzleFlash;
     UPROPERTY(EditDefaultsOnly) USoundBase* FireSound;

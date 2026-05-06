@@ -22,4 +22,6 @@ void UKH_PlayerAnim_FPS::NativeUpdateAnimation(float DeltaSeconds)
     bIsJumping = Owner->GetCharacterMovement()->IsFalling();
     bIsCrouching = Owner->GetCharacterMovement()->IsCrouching();
     bIsSprinting = Owner->GetIsSprinting();
+    ADSTransitionTimeIn = Owner->GetADSInTime();
+    ADSTransitionTimeOut = Owner->GetADSOutTime();
 }

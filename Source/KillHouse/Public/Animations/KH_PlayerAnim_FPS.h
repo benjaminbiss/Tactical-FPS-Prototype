@@ -40,6 +40,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
     bool bIsSprinting;
 
+    //** ADS transition in time */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+    float ADSTransitionTimeIn;
+
+    //** ADS transition out time */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+    float ADSTransitionTimeOut;
+
     //** Gather and update animation parameters from Owner */
     virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 };

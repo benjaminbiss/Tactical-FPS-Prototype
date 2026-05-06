@@ -80,12 +80,20 @@ protected:
 	/** Mouse Aim Input Action */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* AimAction;
+
+	/** Mouse Shoot Input Action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* ShootAction;
+
+	/** Reload Input Action */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* ReloadAction;
 #pragma endregion
 
 #pragma region UE Overrides
 protected:
 	/** Gameplay Tick */
-	//virtual void Tick(float DeltaSeconds) override;
+	virtual void Tick(float DeltaSeconds) override;
 	/** Gameplay Set Up */
 	virtual void BeginPlay() override;
 	/** Gameplay Clean Up */
@@ -112,14 +120,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void LookCharacter(float Yaw, float Pitch);
 
-	/** Handles aim start inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	void HandleAimStart();
-
-	/** Handles aim end inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	void HandleAimEnd();
-
 	/** Handles jump start inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void HandleJumpStart();
@@ -143,6 +143,26 @@ protected:
 	/** Handles crouch end inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void HandleCrouchEnd();
+
+	/** Handles aim start inputs from either controls or UI interfaces */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void HandleAimStart();
+
+	/** Handles aim end inputs from either controls or UI interfaces */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void HandleAimEnd();
+
+	/** Handles shoot start inputs from either controls or UI interfaces */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void HandleShootStart();
+
+	/** Handles shoot end inputs from either controls or UI interfaces */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void HandleShootEnd();
+
+	/** Handles reload inputs from either controls or UI interfaces */
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void HandleReload();
 #pragma endregion
 
 #pragma region Movement Variables
@@ -155,6 +175,8 @@ protected:
 	bool bIsSprinting = false;
 	//** Used for Animation */
 	bool bWeaponObstructed = false;
+	//** Used to Lerp Camera for weapon recoil*/
+	FVector TargetCameraRecoilOffset;
 #pragma endregion
 
 #pragma region Movement Variables Getters
@@ -163,5 +185,16 @@ public:
 	bool GetIsSprinting() { return bIsSprinting; };
 	//** Accessor for Animation Instance */
 	bool GetIsAiming() { return bIsAiming; };
+	float GetADSInTime();
+	float GetADSOutTime();
+#pragma endregion
+
+#pragma region Animation Notifies
+	//** Handles binding to each animation montage notify*/
+	void InitAnimations();
+	void BindWeaponReadyAnimation(UAnimMontage* Montage);
+	/** Handles reload anim notify */
+	UFUNCTION()
+	void HandleWeaponReadyAnimNotify();
 #pragma endregion
 };

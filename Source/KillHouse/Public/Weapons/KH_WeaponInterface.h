@@ -17,6 +17,13 @@ class KILLHOUSE_API IKH_WeaponInterface
 	GENERATED_BODY()
 
 public:
+    //** Set Weapon Can Fire Logic */
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    void SetCanFire(bool Value);
+    //** Set Weapon Can Fire Logic */
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    bool GetCanFire();
+
     //** Handle Weapon Fire Logic */
     UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
     void Fire();
@@ -33,13 +40,34 @@ public:
     UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
     void ToggleLaser();
 
-    //UFUNCTION(BlueprintNativeEvent, Category = "Weapon")
-    //void StartADS();
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    void StartADS();
 
-    //UFUNCTION(BlueprintNativeEvent, Category = "Weapon")
-    //void StopADS();
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    void StopADS();
+
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    int32 GetAmmoCount();
+
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    UAnimMontage* GetDrawMontage();
+
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    UAnimMontage* GetHolsterMontage();
+
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    UAnimMontage* GetIdleFireMontage();
+
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    UAnimMontage* GetADSFireMontage();
+
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    UAnimMontage* GetReloadMontage();
+
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
+    UAnimMontage* GetReloadEmptyMontage();
 
     //** Access Weapon Stats within a Weapon Data Asset */
-    UFUNCTION(BlueprintNativeEvent, Category = "Weapon")
+    UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapon")
     FKH_WeaponStats GetWeaponStats();
 };

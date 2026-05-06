@@ -1,5 +1,6 @@
 #include "Characters/KH_PlayerCharacter.h"
 
+#include "Animations/WeaponReadyAnimNotify.h"
 #include "Weapons/KH_WeaponBase.h"
 
 #include "Camera/CameraComponent.h"
@@ -52,11 +53,20 @@ AKH_PlayerCharacter::AKH_PlayerCharacter()
 }
 
 #pragma region UE Overrides
-//void AKH_PlayerCharacter::Tick(float DeltaSeconds)
-//{
-//	Super::Tick(DeltaSeconds);
-//
-//}
+void AKH_PlayerCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (!TargetCameraRecoilOffset.IsNearlyZero())
+	{
+		const float CameraSmoothSpeed = 0.25f;
+		float YawDelta = TargetCameraRecoilOffset.X * CameraSmoothSpeed;
+		float PitchDelta = TargetCameraRecoilOffset.Z * CameraSmoothSpeed;
+		AddControllerYawInput((FMath::FRand() * 2 - 1.0f) * YawDelta); // -1,1 range * recoil horizontal
+		AddControllerPitchInput(FMath::FRand() * PitchDelta);
+		TargetCameraRecoilOffset -= FVector(YawDelta, 0, PitchDelta);
+	}
+}
 
 void AKH_PlayerCharacter::BeginPlay()
 {
@@ -77,7 +87,13 @@ void AKH_PlayerCharacter::BeginPlay()
 	{
 		Weapon->AttachToComponent(FirstPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("ik_hand_gun"));
 		WeaponInterface = Weapon;
+		WeaponInterface->Execute_SetCanFire(WeaponInterface.GetObject(), false);
+
+		// Configure Animations
+		InitAnimations();
+		FirstPersonMesh->GetAnimInstance()->Montage_Play(WeaponInterface->Execute_GetDrawMontage(WeaponInterface.GetObject()));		
 	}
+
 }
 
 void AKH_PlayerCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -115,6 +131,13 @@ void AKH_PlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		// Aiming
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AKH_PlayerCharacter::HandleAimStart);
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AKH_PlayerCharacter::HandleAimEnd);
+
+		// Shooting
+		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AKH_PlayerCharacter::HandleShootStart);
+		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &AKH_PlayerCharacter::HandleShootEnd);
+
+		// Reload
+		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &AKH_PlayerCharacter::HandleReload);
 	}
 	else
 	{
@@ -176,11 +199,54 @@ void AKH_PlayerCharacter::LookCharacter(float Yaw, float Pitch)
 void AKH_PlayerCharacter::HandleAimStart()
 {
 	bIsAiming = true;
+	WeaponInterface->Execute_StartADS(WeaponInterface.GetObject());
 }
 
 void AKH_PlayerCharacter::HandleAimEnd()
 {
 	bIsAiming = false;
+	WeaponInterface->Execute_StopADS(WeaponInterface.GetObject());
+}
+
+void AKH_PlayerCharacter::HandleShootStart()
+{
+	if (WeaponInterface == nullptr)
+		return;	
+
+	int32 AmmoCount = WeaponInterface->Execute_GetAmmoCount(WeaponInterface.GetObject());
+	bool bCanFire = WeaponInterface->Execute_GetCanFire(WeaponInterface.GetObject());
+	if (bCanFire && AmmoCount > 0)
+	{
+		WeaponInterface->Execute_Fire(WeaponInterface.GetObject());
+
+		FKH_WeaponStats stats = WeaponInterface->Execute_GetWeaponStats(WeaponInterface.GetObject());
+		FVector recoil = bIsAiming ? stats.ADSShotImpulseVector : stats.IdleShotImpulseVector;
+		TargetCameraRecoilOffset += recoil;
+
+		UAnimMontage* FireMontage = bIsAiming ? WeaponInterface->Execute_GetADSFireMontage(WeaponInterface.GetObject()) : WeaponInterface->Execute_GetIdleFireMontage(WeaponInterface.GetObject());
+		if (FireMontage)
+		{
+			FirstPersonMesh->GetAnimInstance()->Montage_Play(FireMontage);
+			// play on character world mesh here too
+		}
+	}
+}
+
+void AKH_PlayerCharacter::HandleShootEnd()
+{
+
+}
+
+void AKH_PlayerCharacter::HandleReload()
+{
+	int32 AmmoCount = WeaponInterface->Execute_GetAmmoCount(WeaponInterface.GetObject());
+	UAnimMontage* ReloadMontage = AmmoCount > 0 ? WeaponInterface->Execute_GetReloadMontage(WeaponInterface.GetObject()) : WeaponInterface->Execute_GetReloadEmptyMontage(WeaponInterface.GetObject());
+
+	if (ReloadMontage)
+	{
+		WeaponInterface->Execute_SetCanFire(WeaponInterface.GetObject(), false);
+		FirstPersonMesh->GetAnimInstance()->Montage_Play(ReloadMontage);
+	}
 }
 
 void AKH_PlayerCharacter::HandleJumpStart()
@@ -212,5 +278,54 @@ void AKH_PlayerCharacter::HandleCrouchStart()
 void AKH_PlayerCharacter::HandleCrouchEnd()
 {
 	UnCrouch();
+}
+#pragma endregion
+
+#pragma region Movement Variables Getters
+float AKH_PlayerCharacter::GetADSInTime()
+{
+	if (WeaponInterface == nullptr)
+		return 0.0f;
+
+	FKH_WeaponStats stats = WeaponInterface->Execute_GetWeaponStats(WeaponInterface.GetObject());
+	return stats.ADSTimeIn;
+}
+float AKH_PlayerCharacter::GetADSOutTime()
+{
+	if (WeaponInterface == nullptr)
+		return 0.0f;
+
+	FKH_WeaponStats stats = WeaponInterface->Execute_GetWeaponStats(WeaponInterface.GetObject());
+	return stats.ADSTimeOut;
+}
+#pragma endregion
+
+#pragma region Animation Notifies
+void AKH_PlayerCharacter::InitAnimations()
+{
+	BindWeaponReadyAnimation(WeaponInterface->Execute_GetDrawMontage(WeaponInterface.GetObject()));
+	BindWeaponReadyAnimation(WeaponInterface->Execute_GetReloadMontage(WeaponInterface.GetObject()));
+	BindWeaponReadyAnimation(WeaponInterface->Execute_GetReloadEmptyMontage(WeaponInterface.GetObject()));
+}
+void AKH_PlayerCharacter::BindWeaponReadyAnimation(UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		const auto NotifyEvents = Montage->Notifies;
+		for (FAnimNotifyEvent EventNotify : NotifyEvents)
+		{
+			if (const auto MyNotify = Cast<UWeaponReadyAnimNotify>(EventNotify.Notify))
+			{
+				MyNotify->OnWeaponReadyNotify.AddUObject(this, &AKH_PlayerCharacter::HandleWeaponReadyAnimNotify);
+			}
+		}
+	}
+}
+
+void AKH_PlayerCharacter::HandleWeaponReadyAnimNotify()
+{
+	UE_LOG(LogTemp, Warning, TEXT("WeaponReady"));
+	if (WeaponInterface)
+		WeaponInterface->Execute_SetCanFire(WeaponInterface.GetObject(), true);
 }
 #pragma endregion
