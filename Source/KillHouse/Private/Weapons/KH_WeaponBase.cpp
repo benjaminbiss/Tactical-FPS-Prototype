@@ -2,18 +2,28 @@
 
 #include "Kismet/GameplayStatics.h"
 
+#include "Animations/KH_WeaponAnimBase.h"
+#include "Animations/ReloadAnimNotify.h"
+
 AKH_WeaponBase::AKH_WeaponBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	// Configure WeaponMesh
-	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FPS_Gun"));
+	// Configure Weapon Mesh
+	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(GetRootComponent());
 	WeaponMesh->SetOnlyOwnerSee(true);
 	WeaponMesh->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::FirstPerson;
 	WeaponMesh->SetCollisionProfileName(FName("NoCollision"));
 
-	// Configure Muzzlepoint
+	// Configure Magazine Mesh
+	MagazineMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MagazineMesh"));
+	MagazineMesh->SetupAttachment(WeaponMesh, FName("MagazineSocket"));
+	MagazineMesh->SetOnlyOwnerSee(true);
+	MagazineMesh->FirstPersonPrimitiveType = EFirstPersonPrimitiveType::FirstPerson;
+	MagazineMesh->SetCollisionProfileName(FName("NoCollision"));
+
+	// Configure Muzzle point
 	MuzzlePoint = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzlePoint"));
 	MuzzlePoint->SetupAttachment(WeaponMesh);
 }
@@ -31,9 +41,34 @@ void AKH_WeaponBase::BeginPlay()
 	}
 
 	// Configure weapon from weapon data
-	SetWeaponMesh();
 	SetAnimInstance();
 	CurrentAmmo = WeaponData->Stats.MagSize;
+
+	// Configure animation Notifies
+	UAnimMontage* ReloadMontage = WeaponData->WeaponReloadMontage;
+	if (ReloadMontage)
+	{
+		const auto NotifyEvents = ReloadMontage->Notifies;
+		for (FAnimNotifyEvent EventNotify : NotifyEvents)
+		{
+			if (const auto MyNotify = Cast<UReloadAnimNotify>(EventNotify.Notify))
+			{
+				MyNotify->OnReloadNotify.AddUObject(this, &AKH_WeaponBase::HandleReloadAnimNotify);
+			}
+		}
+	}
+	ReloadMontage = WeaponData->WeaponReloadEmptyMontage;
+	if (ReloadMontage)
+	{
+		const auto NotifyEvents = ReloadMontage->Notifies;
+		for (FAnimNotifyEvent EventNotify : NotifyEvents)
+		{
+			if (const auto MyNotify = Cast<UReloadAnimNotify>(EventNotify.Notify))
+			{
+				MyNotify->OnReloadNotify.AddUObject(this, &AKH_WeaponBase::HandleReloadAnimNotify);
+			}
+		}
+	}
 }
 #pragma endregion
 
@@ -63,16 +98,19 @@ void AKH_WeaponBase::Fire_Implementation()
 
 void AKH_WeaponBase::Reload_Implementation()
 {
-	UAnimMontage* ReloadMontage = WeaponData->ReloadMontage;
-	if (ReloadMontage == nullptr)
-		return;
-	if (WeaponMesh == nullptr)
-		return;
-	UAnimInstance* AnimInstance = WeaponMesh->GetAnimInstance();
-	if (AnimInstance == nullptr)
+	if (WeaponMesh == nullptr || WeaponData->WeaponAnimInstanceClass == nullptr)
 		return;
 
-	AnimInstance->PlaySlotAnimationAsDynamicMontage(ReloadMontage, "Action", 0.25f, 0.25f, 1.0f, 1, -1.0f, 0.0f);
+	UAnimMontage* ReloadMontage = nullptr;
+	if (CurrentAmmo > 0)
+		ReloadMontage = WeaponData->WeaponReloadMontage;
+	else
+		ReloadMontage = WeaponData->WeaponReloadEmptyMontage;
+
+	if (ReloadMontage == nullptr)
+		return;
+		
+	WeaponMesh->GetAnimInstance()->Montage_Play(ReloadMontage);
 }
 
 void AKH_WeaponBase::ToggleLight_Implementation()
@@ -140,14 +178,6 @@ FKH_WeaponStats AKH_WeaponBase::GetWeaponStats_Implementation()
 #pragma endregion
 
 #pragma region Weapon Data Logic
-void AKH_WeaponBase::SetWeaponMesh()
-{
-	if (WeaponData->WeaponMesh == nullptr)
-		return;
-
-	WeaponMesh->SetSkeletalMesh(WeaponData->WeaponMesh);
-}
-
 UAnimMontage* AKH_WeaponBase::GetWeaponFireMontage()
 {
 	return WeaponData->WeaponFireMontage;
@@ -160,11 +190,10 @@ UAnimMontage* AKH_WeaponBase::GetReloadMontage()
 
 void AKH_WeaponBase::SetAnimInstance()
 {
-	if (WeaponData->AnimInstanceClass == nullptr)
+	if (WeaponData->WeaponAnimInstanceClass == nullptr)
 		return;
 
-	WeaponMesh->SetAnimInstanceClass(WeaponData->AnimInstanceClass);
-	WeaponMesh->GetAnimInstance()->OnPlayMontageNotifyBegin.AddDynamic(this, &AKH_WeaponBase::HandleAnimiationNotifies);
+	WeaponMesh->SetAnimInstanceClass(WeaponData->WeaponAnimInstanceClass);
 }
 
 UAnimInstance* AKH_WeaponBase::GetAnimInstance()
@@ -220,27 +249,16 @@ void AKH_WeaponBase::HandleFire()
 	}
 
 	// Play anim on weapon mesh
-	if (WeaponMesh == nullptr)
-		return;
-	UAnimInstance* AnimInstance = WeaponMesh->GetAnimInstance();
-	if (AnimInstance == nullptr)
+	if (WeaponMesh == nullptr || WeaponMesh->GetAnimInstance() == nullptr)
 		return;
 
 	UAnimMontage* FireMontage = GetWeaponFireMontage();
 	if (FireMontage)
-		AnimInstance->PlaySlotAnimationAsDynamicMontage(FireMontage, "Action", 0.25f, 0.25f, 1.0f, 1, -1.0f, 0.0f);
+		WeaponMesh->GetAnimInstance()->Montage_Play(FireMontage);
 }
 #pragma endregion
 
 #pragma region Animation Notifies
-void AKH_WeaponBase::HandleAnimiationNotifies(FName NotifyName, const FBranchingPointNotifyPayload& Payload)
-{
-	if (NotifyName == FName("Reload"))
-	{
-		HandleReloadAnimNotify();
-	}
-}
-
 void AKH_WeaponBase::HandleReloadAnimNotify()
 {
 	CurrentAmmo = WeaponData->Stats.MagSize;

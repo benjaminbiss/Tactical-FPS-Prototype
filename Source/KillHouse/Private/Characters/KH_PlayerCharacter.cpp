@@ -245,6 +245,7 @@ void AKH_PlayerCharacter::HandleReload()
 	if (ReloadMontage)
 	{
 		WeaponInterface->Execute_SetCanFire(WeaponInterface.GetObject(), false);
+		WeaponInterface->Execute_Reload(WeaponInterface.GetObject());
 		FirstPersonMesh->GetAnimInstance()->Montage_Play(ReloadMontage);
 	}
 }

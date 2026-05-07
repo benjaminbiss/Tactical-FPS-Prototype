@@ -18,9 +18,13 @@ public:
 #pragma region Components
 protected:
 	//** Weapon Skeletal Mesh */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* WeaponMesh;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	//** Static Magazine Mesh */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	UStaticMeshComponent* MagazineMesh;
+	//** Muzzle Scene Component */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	USceneComponent* MuzzlePoint;
 #pragma endregion
 
@@ -67,8 +71,6 @@ public:
 #pragma endregion
 
 #pragma region Weapon Data Logic
-	//** Configure Mesh from Weapon Data Asset */
-	void SetWeaponMesh();
 	//** Get Fire Anim from Weapon Data Asset */
 	UAnimMontage* GetWeaponFireMontage();
 	//** Get Reload Anim from Weapon Data Asset */
@@ -105,9 +107,6 @@ protected:
 #pragma endregion
 
 #pragma region Animation Notifies
-	/** Handles fps skeleton anim notify */
-	UFUNCTION()
-	void HandleAnimiationNotifies(FName NotifyName, const FBranchingPointNotifyPayload& Payload);
 	/** Handles reload anim notify */
 	UFUNCTION()
 	void HandleReloadAnimNotify();
